@@ -34,7 +34,7 @@ this function sends an event to all clients currently connected.
 Here's a basic server, which just relays any received events out to all clients.
 
 ```python
-# import ebsockets.connections
+# import ebsockets so we can use its classes
 import ebsockets
 
 # initialise a server class
@@ -67,4 +67,42 @@ while True:
     # iterate through clients who've disconnected, and print their connections
     for client in disconnected_clients:
         print(f"Client disconnected {client[1][0]}:{client[1][0]}")
+```
+
+Here is a basic client script, which can connect to a server and send messages
+
+```python
+# import ebsockets so we can use its classes
+import ebsockets
+
+# initialise a client, which we'll connect to the server with
+client = connections.ebsocket_client()
+
+# ask the user for the server ip and port, and use preset defaults
+ip = input("ip >>> ") or connections.utility.get_local_ip()
+port = int(input("port >>> ") or 7982)
+# if nothing is entered above, the ip will be the local ip, and port will be 7982
+
+print(f"Connecting to {ip}:{port}")
+# try to connect to the server address
+client.connect_to((ip,port))
+
+while True:
+    # ask the user to type something
+    message_content = input("send event >>> ")
+
+    # check if the user actually entered any text, or left the input blank
+    if message_content:
+        # create and send a new "message" event to the server, with a content attribute
+        send_event = connections.ebsocket_event('message', content=message_content)
+        client.send_event(send_event)
+    
+    # use client.pump() to see server responses
+    events, connected = client.pump()
+
+    # iterate through all new server events, and print them
+    for event in events:
+        print(f"New event received {event}")
+        if event.compare_type('message'):
+            print(event.get_attribute('content'))
 ```
