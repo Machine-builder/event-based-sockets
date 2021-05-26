@@ -28,7 +28,7 @@ information, such as new connections, and disconnected clients.
 this function sends an event to all clients currently connected.
 
 ---
-### Code examples
+### Code Examples
 ---
 
 Here's a basic server, which just relays any received events out to all clients.
@@ -106,3 +106,10 @@ while True:
         if event.compare_type('message'):
             print(event.get_attribute('content'))
 ```
+
+---
+### Extra Notes
+---
+
+feel free to create pull requests to fix any bugs you might find!
+this project is in incredibly early development, so there's probabaly a few lurking
