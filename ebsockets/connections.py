@@ -167,6 +167,7 @@ class ebsocket_client(ebsocket_base):
         also returns a boolean representing whether the connection
         is still active'''
         new_events = []
+        
         try:
             while True:
                 new_event = self.recv_event()
@@ -175,7 +176,7 @@ class ebsocket_client(ebsocket_base):
                 new_events.append(new_event)
 
         except ConnectionResetError as e:
-            return new_event, False
+            return new_events, False
 
         except IOError as e:
             if e.errno != errno.EAGAIN and errno != errno.EWOULDBLOCK:
@@ -271,19 +272,19 @@ class ebsocket_event(object):
     def __init__(self, event_data, **kwargs) -> None:
         self.from_connection = False
         if isinstance(event_data, str):
-            self.data = {'event': event_data}
-            self.data.update(kwargs)
+            self.__dict__ = {'event': event_data}
+            self.__dict__.update(kwargs)
         elif isinstance(event_data, ebsocket_event):
-            self.data = event_data.data
+            self.__dict__ = event_data.data
             self.from_connection = event_data.from_connection
         else:
-            self.data = event_data
-        self.event = self.data.get('event', None)
+            self.__dict__ = event_data
+        self.event = self.__dict__.get('event', None)
 
     def get_attribute(self, attribute):
         '''gets an attribute of the event's data, if the attribute
         does not exist, returns None'''
-        return self.data.get(attribute, None)
+        return self.__dict__.get(attribute, None)
 
     def compare_type(self, event_type:str) -> bool:
         '''compare the event's type with the provided argument'''
