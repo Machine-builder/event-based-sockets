@@ -102,9 +102,12 @@ class ebsocket_base(object):
         '''receives data with a header'''
         use_socket = self.is_valid_socket(recv_socket)
         header_recv = use_socket.recv(constants.header_size)
-        total_bytes = int(header_recv.decode())
-        data_recv = use_socket.recv(total_bytes)
-        return data_recv
+        try:
+            total_bytes = int(header_recv.decode())
+            data_recv = use_socket.recv(total_bytes)
+            return data_recv
+        except:
+            return None
 
     def send_event(self, event: ebsocket_event = None, send_socket: socket.socket = None):
         '''sends an event using send_socket'''
@@ -117,6 +120,8 @@ class ebsocket_base(object):
         received is not an event object, the function returns None'''
         use_socket = self.is_valid_socket(recv_socket)
         raw_bytes = self.recv_with_header(use_socket)
+        if raw_bytes is None:
+            return None
         loaded_event: ebsocket_event = utility.try_unpickle(raw_bytes)
         if isinstance(loaded_event, ebsocket_event):
             return loaded_event
@@ -167,7 +172,7 @@ class ebsocket_client(ebsocket_base):
         also returns a boolean representing whether the connection
         is still active'''
         new_events = []
-        
+
         try:
             while True:
                 new_event = self.recv_event()
