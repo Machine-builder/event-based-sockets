@@ -9,8 +9,8 @@
 `ebsockets` is a python library aiming to simplify server-client systems.
 
 the whole system is designed to be easy to use, and it's setup to use events.  
-events are basically containers of information, which contain an `event_type`, and `data`  
-`data` in an event is in the form of `key: value` pairs, which allows for easy read & write functionality.
+events are basically containers of information, which contain an `event`, and `__dict__` attribute  
+`__dict__` in an event is in the form of `key: value` pairs, which allows for easy read & write functionality.
 
 events can be sent and recieved by the server system & client systems easily, with just a few  
 simple functions.
