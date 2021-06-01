@@ -102,12 +102,9 @@ class ebsocket_base(object):
         '''receives data with a header'''
         use_socket = self.is_valid_socket(recv_socket)
         header_recv = use_socket.recv(constants.header_size)
-        try:
-            total_bytes = int(header_recv.decode())
-            data_recv = use_socket.recv(total_bytes)
-            return data_recv
-        except:
-            return None
+        total_bytes = int(header_recv.decode())
+        data_recv = use_socket.recv(total_bytes)
+        return data_recv
 
     def send_event(self, event: ebsocket_event = None, send_socket: socket.socket = None):
         '''sends an event using send_socket'''
@@ -120,8 +117,6 @@ class ebsocket_base(object):
         received is not an event object, the function returns None'''
         use_socket = self.is_valid_socket(recv_socket)
         raw_bytes = self.recv_with_header(use_socket)
-        if raw_bytes is None:
-            return None
         loaded_event: ebsocket_event = utility.try_unpickle(raw_bytes)
         if isinstance(loaded_event, ebsocket_event):
             return loaded_event
@@ -203,7 +198,7 @@ class ebsocket_system(object):
         self.server.listen(5)
         self.connections_list = [self.server.connection]
         self.clients = {}
-        self.timeout = 0.1
+        self.timeout = 0.5
 
     def pump(self) -> Tuple[List[Tuple], List[ebsocket_event], List[Tuple]]:
         '''runs the main system
@@ -215,8 +210,9 @@ class ebsocket_system(object):
          - new_events:list
          - disconnected_clients:list'''
         
+        conn_list = self.connections_list
         read_connections, _, exception_connections = select.select(
-            self.connections_list, [], self.connections_list, self.timeout)
+            conn_list, [], conn_list, self.timeout)
 
         new_clients = []
         new_events = []
@@ -233,6 +229,9 @@ class ebsocket_system(object):
                 try:
                     event = self.server.recv_event(notified_connection)
                 except ConnectionResetError as e:
+                    event = None
+                    exception_connections.append(notified_connection)
+                except ValueError as e:
                     event = None
                     exception_connections.append(notified_connection)
 
