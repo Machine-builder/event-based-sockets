@@ -203,6 +203,7 @@ class ebsocket_system(object):
         self.server.listen(5)
         self.connections_list = [self.server.connection]
         self.clients = {}
+        self.timeout = 0.1
 
     def pump(self) -> Tuple[List[Tuple], List[ebsocket_event], List[Tuple]]:
         '''runs the main system
@@ -213,9 +214,9 @@ class ebsocket_system(object):
          - new_clients:list
          - new_events:list
          - disconnected_clients:list'''
-
+        
         read_connections, _, exception_connections = select.select(
-            self.connections_list, [], self.connections_list)
+            self.connections_list, [], self.connections_list, self.timeout)
 
         new_clients = []
         new_events = []
