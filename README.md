@@ -12,6 +12,15 @@ the whole system is designed to be easy to use, and it's setup to use events.
 events are basically containers of information, which contain an `event`, and `__dict__` attribute  
 `__dict__` in an event is in the form of `key: value` pairs, which allows for easy read & write functionality.
 
+Due to the `event` objects using the `__dict__` attribute, event data can be accessed directly,  
+like so:
+```python
+import ebsockets
+event = ebsockets.connections.ebsocket_event
+event_test = event('some_event', some_attribute="this is just random attached data")
+print(event_test.some_attribute) # "this is just random attached data"
+```
+
 events can be sent and recieved by the server system & client systems easily, with just a few  
 simple functions.
 
@@ -58,8 +67,8 @@ while True:
     for event in new_events:
         print(f"New event: {event}")
         # check if the event is a message
-        if event.compare_type('message'):
-            message_content = event.get_attribute('content')
+        if event.event == 'message':
+            message_content = event.content
             # create a new event with the same message content as the original event
             system.send_event_to_clients(
                 ebsockets.connections.ebsocket_event('message', content=message_content))
@@ -76,10 +85,10 @@ Here is a basic client script, which can connect to a server and send messages
 import ebsockets
 
 # initialise a client, which we'll connect to the server with
-client = connections.ebsocket_client()
+client = ebsockets.connections.ebsocket_client()
 
 # ask the user for the server ip and port, and use preset defaults
-ip = input("ip >>> ") or connections.utility.get_local_ip()
+ip = input("ip >>> ") or ebsockets.connections.utility.get_local_ip()
 port = int(input("port >>> ") or 7982)
 # if nothing is entered above, the ip will be the local ip, and port will be 7982
 
@@ -94,7 +103,7 @@ while True:
     # check if the user actually entered any text, or left the input blank
     if message_content:
         # create and send a new "message" event to the server, with a content attribute
-        send_event = connections.ebsocket_event('message', content=message_content)
+        send_event = ebsockets.connections.ebsocket_event('message', content=message_content)
         client.send_event(send_event)
     
     # use client.pump() to see server responses
@@ -103,8 +112,8 @@ while True:
     # iterate through all new server events, and print them
     for event in events:
         print(f"New event received {event}")
-        if event.compare_type('message'):
-            print(event.get_attribute('content'))
+        if event.event == 'message':
+            print(event.content)
 ```
 
 ---
