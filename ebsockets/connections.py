@@ -25,21 +25,6 @@ class ebsocket_event:
 
 class utility():
     @staticmethod
-    def try_unpickle(obj: bytes):
-        '''tests if obj is a pickled object.
-        If it is, return the unpickled object,
-        otherwise, return None'''
-        try:
-            return pickle.loads(obj)
-        except:
-            return None
-
-    @staticmethod
-    def pickle_object(obj: any) -> bytes:
-        '''dumps provided object using pickle.dumps()'''
-        return pickle.dumps(obj)
-
-    @staticmethod
     def any_type_join(l: list, j: str) -> str:
         '''concatenates a list of any object type with j as the connecting string'''
         return j.join([str(a) for a in l])
@@ -109,7 +94,7 @@ class ebsocket_base(object):
     def send_event(self, event: ebsocket_event = None, send_socket: socket.socket = None):
         '''sends an event using send_socket'''
         use_socket = self.is_valid_socket(send_socket)
-        raw_bytes = utility.pickle_object(event)
+        raw_bytes = event.as_bytes()
         return self.send_with_header(raw_bytes, use_socket)
 
     def recv_event(self, recv_socket: socket.socket = None):
@@ -117,7 +102,7 @@ class ebsocket_base(object):
         received is not an event object, the function returns None'''
         use_socket = self.is_valid_socket(recv_socket)
         raw_bytes = self.recv_with_header(use_socket)
-        loaded_event: ebsocket_event = utility.try_unpickle(raw_bytes)
+        loaded_event = ebsocket_event.from_bytes(raw_bytes)
         if isinstance(loaded_event, ebsocket_event):
             return loaded_event
         return None
@@ -176,6 +161,7 @@ class ebsocket_client(ebsocket_base):
                 new_events.append(new_event)
 
         except ConnectionResetError as e:
+            logging.info(f"connection reset error in get_new_events() -> {e}")
             return new_events, False
 
         except IOError as e:
@@ -257,9 +243,12 @@ class ebsocket_system(object):
 
     def send_event_to(self, connection: socket.socket, event: ebsocket_event):
         '''sends an event to a client'''
-        data = utility.pickle_object(event)
-        header = utility.get_header(data)
-        self.send_raw_to(connection, header+data)
+        try:
+            data = utility.pickle_object(event)
+            header = utility.get_header(data)
+            self.send_raw_to(connection, header+data)
+        except Exception as e:
+            return False
 
     def send_event_to_clients(self, event: ebsocket_event):
         '''sends an event to all clients'''
@@ -300,12 +289,31 @@ class ebsocket_event(object):
     
     def print_attributes(self):
         '''prints all event data attributes'''
-        attribute_names = [k for k in self.attributes]
+        attribute_names = [k for k in self.__dict__]
         print(self)
         print('~ attributes ~')
         if len(attribute_names) > 0:
             longest = max([len(i) for i in attribute_names])
             for attribute_name in attribute_names:
-                print(f' * {attribute_name.ljust(longest)}  :  {self.attributes[attribute_name]}')
+                print(f' * {attribute_name.ljust(longest)}  :  {self.__dict__[attribute_name]}')
         else:
             print("event has no attributes")
+
+    def as_bytes(self) -> bytes:
+        '''compile the event into bytes'''
+        json_data = {
+            'event': self.event,
+            '__dict__': self.__dict__}
+        return pickle.dumps(json_data)
+    
+    @staticmethod
+    def from_bytes(byte_data:bytes) -> ebsocket_event:
+        '''decompile an event from bytes'''
+        try:
+            unpickled = pickle.loads(byte_data)
+            event = ebsocket_event(
+                unpickled.get('event',None),
+                **unpickled.get('__dict__',{}))
+            return event
+        except:
+            return None
