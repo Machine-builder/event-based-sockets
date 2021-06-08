@@ -102,9 +102,9 @@ class ebsocket_base(object):
         received is not an event object, the function returns None'''
         use_socket = self.is_valid_socket(recv_socket)
         raw_bytes = self.recv_with_header(use_socket)
-        loaded_event = ebsocket_event.from_bytes(raw_bytes)
-        if isinstance(loaded_event, ebsocket_event):
-            return loaded_event
+        event = ebsocket_event.from_bytes(raw_bytes)
+        if isinstance(event, ebsocket_event):
+            return event
         return None
 
 
@@ -161,17 +161,17 @@ class ebsocket_client(ebsocket_base):
                 new_events.append(new_event)
 
         except ConnectionResetError as e:
-            logging.info(f"connection reset error in get_new_events() -> {e}")
+            logging.debug(f"connection reset error in get_new_events() -> {e}")
             return new_events, False
 
         except IOError as e:
             if e.errno != errno.EAGAIN and errno != errno.EWOULDBLOCK:
                 # reading error
-                logging.info(f"reading error in get_new_events() -> {e}")
+                logging.debug(f"reading error in get_new_events() -> {e}")
 
         except Exception as e:
             # general error
-            logging.info(f"general error in get_new_events() -> {e}")
+            logging.debug(f"general error in get_new_events() -> {e}")
 
         return new_events, True
 
@@ -244,7 +244,7 @@ class ebsocket_system(object):
     def send_event_to(self, connection: socket.socket, event: ebsocket_event):
         '''sends an event to a client'''
         try:
-            data = utility.pickle_object(event)
+            data = event.as_bytes()
             header = utility.get_header(data)
             self.send_raw_to(connection, header+data)
         except Exception as e:
@@ -252,11 +252,14 @@ class ebsocket_system(object):
 
     def send_event_to_clients(self, event: ebsocket_event):
         '''sends an event to all clients'''
-        data = utility.pickle_object(event)
-        header = utility.get_header(data)
-        raw_bytes = header+data
-        for client_connection in self.clients:
-            self.send_raw_to(client_connection, raw_bytes)
+        try:
+            data = event.as_bytes()
+            header = utility.get_header(data)
+            full_bytes = header+data
+            for connection in self.clients:
+                self.send_raw_to(connection, full_bytes)
+        except Exception as e:
+            return False
 
 
 class ebsocket_event(object):
